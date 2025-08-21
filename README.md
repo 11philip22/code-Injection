@@ -1,27 +1,39 @@
-# CodeInjection
+# Code Injection Techniques
 
-## SectionInjection
-### This code works on my machine @ 22-06-2021
-Injects shellcode using NtCreateSection, NtMapViewOfSection and RtlCreateUserThread.  
-http://phasetw0.com/section-code-injection/
-#### Explanation
-Create `notepad.exe` as host process to run our shellcode in.  
-Create a new memory section with RWX protection using `NtCreateSection`.  
-Map a view of the created section to the local process with RW protection using `NtMapViewOfSection`.
-Map a view of the created section to a remote target process with RX protection using `NtMapViewOfSection`.  
-Fill the view mapped in the local process with shellcode. This gets reflected in the mapped section in the remote process.  
-Run the mapped shellcode by creating a remote thread and pointing it to the mapped shellcode using `RtlCreateUserThread`.
-#### References
-https://www.ired.team/offensive-security/code-injection-process-injection/ntcreatesection-+-ntmapviewofsection-code-injection
+This repository documents and demonstrates different Windows process injection methods. Each technique leverages low-level Windows APIs to run arbitrary shellcode inside a target process.
 
-## APCQueueInjection
-### This code works on my machine @ 22-06-2021
-#### Explanation
-Find the PID of `explorer.exe`.  
-Allocate memory in explorer.exe process memory space.  
-Write shellcode to that memory location.  
-Find an alertable thread by reading the context of a remote thread and examining the control and integer registers. More details on Modexp's blog.  
-Queue an APC at alertable thread. APC points to the shellcode
-#### References
-https://modexp.wordpress.com/2019/08/27/process-injection-apc/  
-https://www.ired.team/offensive-security/code-injection-process-injection/apc-queue-code-injection
+---
+
+## Section Injection
+
+**Method:** Uses `NtCreateSection`, `NtMapViewOfSection`, and `RtlCreateUserThread`.  
+[Reference: phasetw0 – Section Code Injection](http://phasetw0.com/section-code-injection/)  
+
+### How It Works
+1. Launch a host process (e.g., `notepad.exe`) that will execute the shellcode.  
+2. Create a memory section with **RWX** permissions via `NtCreateSection`.  
+3. Map the section into the local process with **RW** permissions using `NtMapViewOfSection`.  
+4. Map the same section into the remote target process with **RX** permissions.  
+5. Write the shellcode into the local mapped view → this change is reflected in the remote mapped section.  
+6. Start execution by creating a remote thread in the target process via `RtlCreateUserThread`, pointing it to the injected shellcode.  
+
+---
+
+## APC Queue Injection
+
+**Method:** Uses Asynchronous Procedure Calls (APCs) to run code inside an alertable thread of a target process.  
+[Reference: Modexp – APC Injection](https://modexp.wordpress.com/2019/08/27/process-injection-apc/)  
+[Reference: ired.team – APC Queue Injection](https://www.ired.team/offensive-security/code-injection-process-injection/apc-queue-code-injection)  
+
+### How It Works
+1. Identify the PID of a target process (`explorer.exe`).  
+2. Allocate memory inside the target process with **RWX** permissions.  
+3. Write the shellcode into that allocated memory.  
+4. Enumerate threads of the target process, then find an **alertable thread** (by checking its context/state).  
+5. Queue an APC pointing to the injected shellcode. When the thread enters an alertable state, the shellcode executes.  
+
+---
+
+## Additional Reading
+- [NtCreateSection + NtMapViewOfSection Code Injection (ired.team)](https://www.ired.team/offensive-security/code-injection-process-injection/ntcreatesection-+-ntmapviewofsection-code-injection)  
+- [Process Injection: APC Queue (modexp)](https://modexp.wordpress.com/2019/08/27/process-injection-apc/)  
